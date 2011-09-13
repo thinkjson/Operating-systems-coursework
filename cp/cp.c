@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define BUFFER_SIZE 1
 #define FALSE 0
@@ -75,9 +76,9 @@ int isdir(const char *filename) {
   return 0;
 }
 
-int isvalid(struct direct *entry)
+int isvalid(const struct direct *entry)
 {
-  if (strcmp(entry->d_name, ".") == 0 || strncmp(entry->d_name, "..") == 0)
+  if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
   {
     return FALSE;
   }
@@ -115,25 +116,22 @@ void copydir(char *indir, char *outdir)
     if (isdir(filename))
     {
       fprintf(stdout, "Recursively copying %s\n", filename);
-      strlcat(infile, indir);
-      strlcat(infile, "/");
-      strlcat(infile, filename);
-      strlcat(outfile, outdir);
-      strlcat(outfile, "/");
-      strlcat(outfile, filename);
-      //fprintf(stdout, "Copying %s to %s\n", infile, outfile);
+      strcat(infile, indir);
+      strcat(infile, "/");
+      strcat(infile, filename);
+      strcat(outfile, outdir);
+      strcat(outfile, "/");
+      strcat(outfile, filename);
       copydir(infile, outfile);
     }
     else
     {
-      //fprintf(stdout, "Copying regular file %s\n", filename);
-      strlcat(infile, indir);
-      strlcat(infile, "/");
-      strlcat(infile, filename);
-      strlcat(outfile, outdir);
-      strlcat(outfile, "/");
-      strlcat(outfile, filename);
-      //fprintf(stdout, "Copying %s to %s\n", infile, outfile);
+      strcat(infile, indir);
+      strcat(infile, "/");
+      strcat(infile, filename);
+      strcat(outfile, outdir);
+      strcat(outfile, "/");
+      strcat(outfile, filename);
       copyfile(infile, outfile);
     }
   }
