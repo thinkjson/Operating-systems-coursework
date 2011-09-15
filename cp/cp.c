@@ -10,10 +10,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define BUFFER_SIZE 1
 #define FALSE 0
 #define TRUE !FALSE
+
+/**
+ * Check to see if a file descriptor refers to a file or a directory
+ */
+int isdir(const char *filename) {
+  struct stat buffer;
+
+  if (lstat(filename, &buffer) == -1) {
+    return 0;
+  }
+
+  if(S_ISDIR(buffer.st_mode)) {
+    return 1;
+  }
+
+  return 0;
+}
 
 /**
  * Copy a file using UNIX system calls
@@ -57,23 +75,6 @@ void copyfile(char *infile, char *outfile)
   {
     fprintf(stdout, "%s\n", infile);
   }
-}
-
-/**
- * Check to see if a file descriptor refers to a file or a directory
- */
-int isdir(const char *filename) {
-  struct stat buffer;
-
-  if (lstat(filename, &buffer) == -1) {
-    return 0;
-  }
-
-  if(S_ISDIR(buffer.st_mode)) {
-    return 1;
-  }
-
-  return 0;
 }
 
 int isvalid(const struct direct *entry)
