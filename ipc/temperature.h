@@ -1,14 +1,14 @@
 #ifndef BASEPID
-#define BASEPID 70
+#define BASEPID 5000
 
 /*
  * Data format for message passing
  */
-struct {
+typedef struct {
   long priority;
   int temp;
   int pid;
   int stable;
-} message;
+} temperature_message;
 
 #endif

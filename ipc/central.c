@@ -8,6 +8,7 @@
 int main (int argc, char *argv[]) {
   int stable = 0;
   int status = 0;
+  temperature_message message;
 
   // Initialize inbox
   int inbox = msgget(BASEPID, 0600 | IPC_CREAT);
@@ -18,16 +19,26 @@ int main (int argc, char *argv[]) {
 
   // Iterate as long as the system isn't stable
   while (stable == 0) {
-    status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 2);
-    printf("External process %d reports temperature %d",
+    printf("Waiting on a message\n");
+    status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
+    if (status == 0) {
+      printf("External process %d reports temperature %d\n",
         message.pid, message.temp);
-    stable = 1;
+    } else {
+      printf("Error occurred while receiving message\n");
+    }
+
+    fflush(stdout);
+    sleep(5);
   }
 
   // Free message queue
   struct msqid_ds msqid_ds, *buf;
   buf = & msqid_ds;
   status = msgctl(inbox, IPC_RMID, buf);
+  if (status < 0) {
+      printf("Could not remove mailbox");
+  }
 
   return status == 0 ? 0 : 1;
 }

@@ -4,8 +4,9 @@ all : central.c external.c
 clean : 
 	rm central external
 test : all
-	./external 100 1 &
-	./external 22 2 &
-	./external 50 3 &
-	./external 40 4 &
-	./central 60 &
+	@echo "Loading all external processes into the background, and central server into the foreground..."
+	#@./external 100 1 &
+	#@./external 22 2 &
+	#@./external 50 3 &
+	@./external 40 4 &
+	@./central 60
