@@ -1,5 +1,5 @@
 #ifndef BASEPID
-#define BASEPID 5000
+#define BASEPID 8000
 #define MAXPROCS 32
 
 /*
