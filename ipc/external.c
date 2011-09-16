@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 #include "temperature.h"
 
 int main (int argc, char *argv[]) {
@@ -24,11 +25,11 @@ int main (int argc, char *argv[]) {
   printf("Initializing external process %d at temperature %d\n", offset, temperature);
 
   // Initialize inbox
-  //int inbox = msgget(BASEPID + offset, 0600 | IPC_CREAT);
-  //if (inbox < 0) {
-//    printf("Could not initialize inbox");
-    //exit(1);
-  //}
+  int inbox = msgget(BASEPID + offset, 0600 | IPC_CREAT);
+  if (inbox < 0) {
+    printf("Could not initialize inbox");
+    exit(1);
+  }
 
   // Initialize outbox
   int outbox = msgget(BASEPID, 0600 | IPC_CREAT);
@@ -48,17 +49,24 @@ int main (int argc, char *argv[]) {
     printf("Sending message...\n", message.stable);
     status = msgsnd(outbox, &message, sizeof(message) - sizeof(long), 0);
     if (status < 0) {
-        printf("Could not send message");
+        perror("Could not send message");
     }
 
     fflush(stdout);
     sleep(3);
   }
 
-  // Free message queue
+  // Free message queues
   struct msqid_ds msqid_ds, *buf;
   buf = & msqid_ds;
   status = msgctl(outbox, IPC_RMID, buf);
+  if (status < 0) {
+      printf("Could not remove outbox");
+  }
+  status = msgctl(inbox, IPC_RMID, buf);
+  if (status < 0) {
+      printf("Could not remove inbox");
+  }
 
   return 0;
 }

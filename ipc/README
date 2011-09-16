@@ -1,0 +1,6 @@
+To build the application:
+    make
+To test the application:
+    make test
+To kill all processes and remove binaries:
+    make clean

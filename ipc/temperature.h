@@ -1,5 +1,6 @@
 #ifndef BASEPID
 #define BASEPID 5000
+#define MAXPROCS 32
 
 /*
  * Data format for message passing
