@@ -49,6 +49,7 @@ int main (int argc, char *argv[]) {
     status = msgsnd(outbox, &message, sizeof(message) - sizeof(long), 0);
     if (status < 0) {
         perror("Could not send message to central process");
+        exit(1);
     }
 
     // Receive response
@@ -58,6 +59,7 @@ int main (int argc, char *argv[]) {
       stable = response.stable;
     } else {
       perror("Could not receive message from central process");
+      exit(1);
     }
 
     // Make sure we can see what's going on
