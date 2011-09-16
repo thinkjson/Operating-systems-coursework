@@ -11,6 +11,7 @@ int main (int argc, char *argv[]) {
   int stable = 0;
   int status = 0;
   temperature_message message;
+  temperature_message response;
 
   // Check for correct usage
   if (argc < 2) {
@@ -21,8 +22,6 @@ int main (int argc, char *argv[]) {
   // Grab parameters
   int temperature = atoi(argv[1]);
   int offset = atoi(argv[2]);
-
-  printf("Initializing external process %d at temperature %d\n", offset, temperature);
 
   // Initialize inbox
   int inbox = msgget(BASEPID + offset, 0600 | IPC_CREAT);
@@ -41,31 +40,32 @@ int main (int argc, char *argv[]) {
   // Create message
   message.priority = 2;
   message.pid = offset;
-  message.temp = temperature;
   message.stable = 0;
 
   // Iterate as long as the system isn't stable
   while (stable == 0) {
-    printf("Sending message...\n", message.stable);
+    // Send updated temperature
+    message.temp = temperature;
     status = msgsnd(outbox, &message, sizeof(message) - sizeof(long), 0);
     if (status < 0) {
-        perror("Could not send message");
+        perror("Could not send message to central process");
     }
 
-    fflush(stdout);
-    sleep(3);
-  }
+    // Receive response
+    status = msgrcv(inbox, &response, sizeof(response) - sizeof(long), 0, 0);
+    if (status >= 0) {
+      temperature = response.temp;
+      stable = response.stable;
+    } else {
+      perror("Could not receive message from central process");
+    }
 
-  // Free message queues
-  struct msqid_ds msqid_ds, *buf;
-  buf = & msqid_ds;
-  status = msgctl(outbox, IPC_RMID, buf);
-  if (status < 0) {
-      printf("Could not remove outbox");
-  }
-  status = msgctl(inbox, IPC_RMID, buf);
-  if (status < 0) {
-      printf("Could not remove inbox");
+    // Make sure we can see what's going on
+    fflush(stdout);
+
+    // Make sure the message queue doesn't fill up faster than
+    // the central process can remove them
+    usleep(500000);
   }
 
   return 0;

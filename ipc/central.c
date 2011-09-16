@@ -10,15 +10,21 @@
 int main (int argc, char *argv[]) {
   int stable = 0;
   int status = 0;
+  int i;
+  int stable_temps = 0;
+  int total_temps = 0;
   temperature_message message;
   temperature_message response;
 
   // Prepare an array to hold the message queue ids
   int external_processes[MAXPROCS];
   memset(external_processes, 0, sizeof external_processes);
+  int temperatures[MAXPROCS];
+  memset(temperatures, -1, sizeof temperatures);
 
   // Grab parameters
   int temperature = atoi(argv[1]);
+  int temperature_sum = 0;
 
   // Initialize inbox
   int inbox = msgget(BASEPID, 0600 | IPC_CREAT);
@@ -32,8 +38,31 @@ int main (int argc, char *argv[]) {
     // Receive message
     status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
     if (status >= 0) {
-      printf("External process %d reports temperature %d\n",
+      printf("%d => %d [",
         message.pid, message.temp);
+      temperatures[message.pid] = message.temp;
+
+      // Check to see if system has reached equillibrium
+      stable_temps = 0;
+      total_temps = 0;
+      temperature_sum = temperature * 2;
+      for (i = 0; i < MAXPROCS; i++) {
+        if (temperatures[i] >= 0) {
+          if (temperatures[i] == temperature) {
+            stable_temps++;
+          }
+
+          temperature_sum += temperatures[i];
+          total_temps++;
+          printf("%d ", temperatures[i]);
+        }
+      }
+
+      if (stable_temps == total_temps) {
+        stable = 1;
+      }
+      temperature = temperature_sum / (2 + total_temps);
+      printf("] <==> %d\n", temperature);
 
       // Initialize mailbox if it isn't already
       if (external_processes[message.pid] == 0) {
@@ -48,8 +77,8 @@ int main (int argc, char *argv[]) {
       if (external_processes[message.pid] > 0) {
         response.priority = 2;
         response.pid = 0;
-        response.temp = message.temp;
-        response.stable = 0;
+        response.stable = stable;
+        response.temp = (message.temp * 3 + 2 * temperature) / 5;
 
         status = msgsnd(external_processes[message.pid], &response,
           sizeof(response) - sizeof(long), 0);
@@ -75,12 +104,16 @@ int main (int argc, char *argv[]) {
   }
 
   // Free outboxes
-  int i;
   for (i = 0; i < MAXPROCS; i++) {
     if (external_processes[i] > 0) {
+      status = msgsnd(external_processes[i], &response,
+        sizeof(response) - sizeof(long), 0);
+      if (status < 0) {
+          perror("Could not tell external process to quit");
+      }
       status = msgctl(external_processes[i], IPC_RMID, buf);
       if (status < 0) {
-          printf("Could not remove mailbox");
+          perror("Could not remove mailbox");
       }
     }
   }

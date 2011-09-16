@@ -1,5 +1,5 @@
 To build the application:
-    make
+    make -j
 To test the application:
     make test
 To kill all processes and remove binaries:
