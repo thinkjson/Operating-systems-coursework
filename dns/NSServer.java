@@ -8,7 +8,7 @@ public class NSServer {
 		ServerSocket socket = new ServerSocket(NSServer.port);
 		boolean listening = true;
 
-		System.out.printf("Listening on port %d\n", NSServer.port);
+		System.out.println("Listening on port " + NSServer.port);
 		Runtime.getRuntime().addShutdownHook(new ShutdownIntercept(socket));
 		while (listening) {
 			new NSServerThread(socket.accept()).start();

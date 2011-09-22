@@ -29,7 +29,7 @@ public class NSServerThread extends Thread {
 			if (input.toLowerCase().substring(0, 4).equals("exit"))
 				break;
 			
-			System.out.printf("Looking up host: %s\n", input);
+			System.out.println("Looking up host: " + input);
 			
 			// Look up ip address
 			try {
