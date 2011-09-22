@@ -1,3 +1,4 @@
+package dns;
 import java.io.*;
 import java.net.*;
 

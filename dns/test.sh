@@ -1,11 +1,11 @@
 #!/bin/bash
 
-javac NSServer.java
-javac NSServerThread.java
-javac ShutdownIntercept.java
-javac NSClient.java
-java NSServer > log 2> /dev/null &
+javac dns/NSServer.java
+javac dns/NSServerThread.java
+javac dns/ShutdownIntercept.java
+javac dns/NSClient.java
+java dns/NSServer > log 2> /dev/null &
 echo $! > server.PID
-java NSClient
+java dns/NSClient
 kill `cat server.PID`
 rm server.PID
