@@ -14,11 +14,18 @@ public class NSClient {
 			new BufferedReader(new InputStreamReader(System.in));
 		
 		String queryString, response;
+		System.out.println("Look up hosts, one per line, or type `exit` to quit.");
 		System.out.print("> ");
 		while ((queryString = query.readLine()) != null) {
+			
 			// Look up ip address
 			out.println(queryString);
 			response = in.readLine();
+			
+			// Watch for DNS server disconnect
+			if (response == null) {
+				break;
+			}
 			
 			System.out.println(response);
 			System.out.print("> ");
