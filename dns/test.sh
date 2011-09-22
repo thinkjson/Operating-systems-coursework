@@ -1,9 +1,6 @@
 #!/bin/bash
 
-javac dns/NSServerThread.java
-javac dns/ShutdownIntercept.java
-javac dns/NSServer.java
-javac dns/NSClient.java
+javac dns/*.java
 java dns/NSServer > log 2> /dev/null &
 echo $! > server.PID
 java dns/NSClient
