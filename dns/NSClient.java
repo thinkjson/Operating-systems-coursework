@@ -10,5 +10,22 @@ public class NSClient {
 		PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 		BufferedReader in = 
 			new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		BufferedReader query = 
+			new BufferedReader(new InputStreamReader(System.in));
+		
+		String queryString, response;
+		System.out.print("> ");
+		while ((queryString = query.readLine()) != null) {
+			// Look up ip address
+			out.println(queryString);
+			response = in.readLine();
+			
+			System.out.println(response);
+			System.out.print("> ");
+		}
+		
+		in.close();
+		out.close();
+		socket.close();
 	}
 }
