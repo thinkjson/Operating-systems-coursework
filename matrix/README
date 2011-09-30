@@ -1,0 +1,7 @@
+This is a test of various multiprocessing implementations compared to a single 
+process. Matrix multiplication is done in a single process, pthreads, fork(), 
+and java threads.
+
+To make the example programs and run the simulation, simply run:
+
+    make test
