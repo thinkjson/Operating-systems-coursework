@@ -1,7 +1,9 @@
 all : 
-	gcc -o2 iteration/
+	@gcc -o2 iteration/matrix.c -o iteration/matrix
 test : all
-	time ./iteration/matrix 10
-	time ./iteration/matrix 100
-	time ./iteration/matrix 1000
-	time ./iteration/matrix 10000
+	@grep "model name" /proc/cpuinfo
+	@echo "\n         Method             Size        Time"
+	@time -f "%e" ./iteration/matrix 10
+	@time -f "%e" ./iteration/matrix 100
+	@time -f "%e" ./iteration/matrix 1000
+	@time -f "%e" ./iteration/matrix 10000
