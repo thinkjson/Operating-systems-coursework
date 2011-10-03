@@ -2,24 +2,32 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#define BASEPID 9000
-#define MAX_SIZE
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#define BASEPID 8000
+#define MAX_SIZE 1000
 
-int matrix1[10][10], matrix2[10][10], result[10][10];
+int matrix1[MAX_SIZE][MAX_SIZE], matrix2[MAX_SIZE][MAX_SIZE],
+    result[MAX_SIZE][MAX_SIZE];
 
 typedef struct {
   long priority;
-  int
-  int *row[];
-  int *col[];
-  int *result[];
+  int index;
   int finished;
+  int result[MAX_SIZE][MAX_SIZE];
 } matrix;
 
 int main(int argc, char *argv[]) {
   int size = atoi(argv[1]), rows, cols, z, PID, proc, parent = 1, modulo,
-      inbox, outbox, mailbox;
+      inbox, outbox, mailbox, status;
   matrix message;
+
+  // Check matrix size
+  if (size > MAX_SIZE) {
+    printf("Matrix too large\n");
+    exit(1);
+  }
 
   // Generate matrices
   srand(time(NULL));
@@ -71,10 +79,9 @@ int main(int argc, char *argv[]) {
   if (parent == 1) {
     // Populate queues
     for (rows = 0; rows < size; rows++) {
-      message.row = matrix1[rows][cols];
-      message.col = matrix2[cols][z];
-      message.result = result[rows][z];
+      message.index = rows;
       status = msgsnd(mailboxes[rows % nprocs], &message, sizeof(message) - sizeof(long), 0);
+      printf("Row %d sent to mailbox %ld\n", rows, rows % nprocs);
     }
 
     // Notify processes to end
@@ -89,6 +96,19 @@ int main(int argc, char *argv[]) {
     }
     printf("Parent finished");
 
+    // Empty mailbox
+    for (rows = 0; rows < size; rows++) {
+      status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
+      for (cols = 0; cols < size; cols++) {
+        result[message.index][cols] = *message.result[cols];
+      }
+    }
+
+    // Free inbox
+    struct msqid_ds msqid_ds, *buf;
+    buf = & msqid_ds;
+    status = msgctl(inbox, IPC_RMID, buf);
+
     // Print finished matrix
     for (rows = 0; rows < size; rows++) {
       for (cols = 0; cols < size; cols++) {
@@ -100,14 +120,23 @@ int main(int argc, char *argv[]) {
     //printf("%*s%*d.0\t", 15, "fork()", 15, size);
   } else {
     // Block on queue input, return resultant row
-    while (message.finished != 1) {
-      status = msgrcv(inbox, &message, sizeof(response) - sizeof(long), 0, 0);
+    while (1) {
+      status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
+      if (message.finished == 1) {
+        break;
+      }
       for (cols = 0; cols < size; cols++) {
         for (z = 0; z < size; z++) {
-          message.result += message.row * message.col;
+          message.result[message.index][z] += matrix1[message.index][cols] * matrix2[cols][z];
         }
       }
+      status = msgsnd(outbox, &message, sizeof(message) - sizeof(long), 0);
     }
+
+    struct msqid_ds msqid_ds, *buf;
+    buf = & msqid_ds;
+    status = msgctl(inbox, IPC_RMID, buf);
+    exit(0);
   }
 
   return 0;

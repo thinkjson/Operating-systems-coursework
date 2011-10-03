@@ -15,7 +15,7 @@ test : all
 #	@time -f "%e" ./pthreads/matrix 100
 #	@time -f "%e" ./pthreads/matrix 500
 #	@time -f "%e" ./pthreads/matrix 1000
-	@time -f "%e" ./fork/matrix 10
+	@time -f "%e" ./fork/matrix 2
 #	@time -f "%e" ./fork/matrix 50
 #	@time -f "%e" ./fork/matrix 100
 #	@time -f "%e" ./fork/matrix 500
