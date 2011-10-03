@@ -2,11 +2,24 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#define BASEPID 9000
+#define MAX_SIZE
+
+int matrix1[10][10], matrix2[10][10], result[10][10];
+
+typedef struct {
+  long priority;
+  int
+  int *row[];
+  int *col[];
+  int *result[];
+  int finished;
+} matrix;
 
 int main(int argc, char *argv[]) {
-  int size = atoi(argv[1]), rows, cols, z, PID, proc, parent;
-  int matrix1[size][size], matrix2[size][size], result[size][size];
-  printf("%*s%*d.0\t", 15, "Iterative", 15, size);
+  int size = atoi(argv[1]), rows, cols, z, PID, proc, parent = 1, modulo,
+      inbox, outbox, mailbox;
+  matrix message;
 
   // Generate matrices
   srand(time(NULL));
@@ -19,45 +32,82 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Initialize inbox
+  inbox = msgget(BASEPID, 0600 | IPC_CREAT);
+  if (inbox < 0) {
+    printf("Could not initialize inbox");
+    exit(1);
+  }
+
   // Fire up processes
   long nprocs = sysconf(_SC_NPROCESSORS_ONLN) * 2;
   if (nprocs <= 0) {
     printf("No processors are available to this process.");
     exit(1);
   }
-  int processes[nprocs];
-  PID = fork();
+  int processes[nprocs], mailboxes[nprocs];
   for (proc = 0; proc < nprocs; proc++) {
-    if (PID == 0) {
+    // Initialize inbox
+    mailbox = msgget(BASEPID + 1 + proc, 0600 | IPC_CREAT);
+    if (mailbox < 0) {
+      printf("Could not initialize inbox");
+      exit(1);
+    }
+
+    PID = fork();
+    if (PID == 0) { // Child process
       parent = 0;
+      modulo = proc;
+      outbox = inbox;
+      inbox = mailbox;
       break;
-    } else {
-      parent = 1;
+    } else { // Parent process
       processes[proc] = PID;
-      PID = fork();
+      mailboxes[proc] = mailbox;
     }
   }
 
   // Do the matrix multiplication
   if (parent == 1) {
-    printf("In parent\n");
     // Populate queues
     for (rows = 0; rows < size; rows++) {
-      for (cols = 0; cols < size; cols++) {
-        for (z = 0; z < size; z++) {
-          result[rows][z] += matrix1[rows][cols] * matrix2[cols][z];
-        }
-      }
-      printf("Calculated row %d", rows);
+      message.row = matrix1[rows][cols];
+      message.col = matrix2[cols][z];
+      message.result = result[rows][z];
+      status = msgsnd(mailboxes[rows % nprocs], &message, sizeof(message) - sizeof(long), 0);
+    }
+
+    // Notify processes to end
+    for (proc = 0; proc < nprocs; proc++) {
+      message.finished = 1;
+      status = msgsnd(mailboxes[proc], &message, sizeof(message) - sizeof(long), 0);
     }
 
     // Wait on children before exiting
     for (proc = 0; proc < nprocs; proc++) {
       waitpid(processes[proc]);
     }
+    printf("Parent finished");
+
+    // Print finished matrix
+    for (rows = 0; rows < size; rows++) {
+      for (cols = 0; cols < size; cols++) {
+        printf("%d ", result[rows][cols]);
+      }
+      printf("\n");
+    }
+
+    //printf("%*s%*d.0\t", 15, "fork()", 15, size);
   } else {
-    // Loop over queue and wait for termination signal
-    printf("In child\n");
+    // Block on queue input, return resultant row
+    while (message.finished != 1) {
+      status = msgrcv(inbox, &message, sizeof(response) - sizeof(long), 0, 0);
+      for (cols = 0; cols < size; cols++) {
+        for (z = 0; z < size; z++) {
+          message.result += message.row * message.col;
+        }
+      }
+    }
   }
 
   return 0;

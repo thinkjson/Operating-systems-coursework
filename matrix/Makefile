@@ -3,8 +3,8 @@ all :
 #	@gcc -o2 pthreads/matrix.c -o pthreads/matrix
 	@gcc -o2 fork/matrix.c -o fork/matrix
 test : all
-	@grep "model name" /proc/cpuinfo
-	@echo "\n         Method             Size        Time"
+#	@grep "model name" /proc/cpuinfo
+#	@echo "\n         Method             Size        Time"
 #	@time -f "%e" ./iteration/matrix 10
 #	@time -f "%e" ./iteration/matrix 50
 #	@time -f "%e" ./iteration/matrix 100
