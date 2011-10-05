@@ -10,10 +10,11 @@ int size;
 int matrix1[MAX_SIZE][MAX_SIZE], matrix2[MAX_SIZE][MAX_SIZE], result[MAX_SIZE][MAX_SIZE];
 std::queue<int> thread_queue;
 
-void *calc_row() {
+void *calc_row(void *args) {
   int row, cols, z;
   while (thread_queue.size() > 0) {
-    row = thread_queue.pop();
+    row = thread_queue.front();
+    thread_queue.pop();
 
     for (cols = 0; cols < size; cols++) {
       for (z = 0; z < size; z++) {
@@ -47,6 +48,7 @@ int main(int argc, char *argv[]) {
       sleep(0);
     }
   }
+  //printf("Generated matrices\n");
 
   // Get CPU information
   long nprocs = sysconf(_SC_NPROCESSORS_ONLN) * 2;
@@ -54,11 +56,13 @@ int main(int argc, char *argv[]) {
     printf("No processors are available to this process.");
     exit(1);
   }
+  //printf("Using %ld threads to multiply matrices of size %d\n", nprocs, size);
 
   // Do the matrix multiplication
   for (rows = 0; rows < size; rows++) {
     thread_queue.push(rows);
   }
+  //printf("Thread queue populated\n");
 
   // Set up pthreads
   pthread_t threads[nprocs];
@@ -69,10 +73,12 @@ int main(int argc, char *argv[]) {
     if (status) {
       perror("Could not create thread: ");
       exit(1);
-    }
+    } //else {
+      //printf("Created thread %d\n", n);
+    //}
 
     // Join thread
-    status = pthread_join(threads[rows], &thread_status);
+    status = pthread_join(threads[n], &thread_status);
     if (status) {
       perror("Could not join thread: ");
       exit(1);
