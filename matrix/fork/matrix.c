@@ -19,7 +19,7 @@ typedef struct {
 } matrix;
 
 int main(int argc, char *argv[]) {
-  int size = atoi(argv[1]), rows, cols, z, PID, proc, parent = 1, modulo,
+  int size = atoi(argv[1]), rows, cols, z, PID, proc, parent = 1,
       inbox, outbox, mailbox, status;
   matrix message;
 
@@ -65,7 +65,6 @@ int main(int argc, char *argv[]) {
     PID = fork();
     if (PID == 0) { // Child process
       parent = 0;
-      modulo = proc;
       outbox = inbox;
       inbox = mailbox;
       break;
@@ -100,6 +99,7 @@ int main(int argc, char *argv[]) {
     for (rows = 0; rows < size; rows++) {
       status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
       for (cols = 0; cols < size; cols++) {
+        printf("Updating cell value\n");
         result[message.index][cols] = *message.result[cols];
       }
     }
@@ -121,6 +121,8 @@ int main(int argc, char *argv[]) {
   } else {
     // Block on queue input, return resultant row
     while (1) {
+      printf("blocking on mailbox %d\n", inbox);
+      fflush(stdout);
       status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
       if (message.finished == 1) {
         break;
@@ -133,6 +135,7 @@ int main(int argc, char *argv[]) {
       status = msgsnd(outbox, &message, sizeof(message) - sizeof(long), 0);
     }
 
+    // Free inbox
     struct msqid_ds msqid_ds, *buf;
     buf = & msqid_ds;
     status = msgctl(inbox, IPC_RMID, buf);
