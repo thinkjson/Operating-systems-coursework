@@ -1,23 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #include <pthread.h>
+#include <queue>
+#define MAX_SIZE 1000
 
 int size;
+int matrix1[MAX_SIZE][MAX_SIZE], matrix2[MAX_SIZE][MAX_SIZE], result[MAX_SIZE][MAX_SIZE];
+std::queue<int> thread_queue;
 
-void *calc_row(void *threadarg) {
-  typedef struct {
-    int row;
-    int matrix1[size][size];
-    int matrix2[size][size];
-    int result[size][size];
-  } thread_data;
-  thread_data *args = (thread_data *) threadarg;
+void *calc_row() {
+  int row, cols, z;
+  while (thread_queue.size() > 0) {
+    row = thread_queue.pop();
 
-  int cols, z;
-  for (cols = 0; cols < size; cols++) {
-    for (z = 0; z < size; z++) {
-      args->result[args->row][z] += args->matrix1[args->row][cols] * args->matrix2[cols][z];
+    for (cols = 0; cols < size; cols++) {
+      for (z = 0; z < size; z++) {
+        result[row][z] += matrix1[row][cols] * matrix2[cols][z];
+      }
     }
   }
 
@@ -26,20 +27,15 @@ void *calc_row(void *threadarg) {
 
 int main(int argc, char *argv[]) {
   size = atoi(argv[1]);
-  int rows, cols, z, status;
+  int rows, cols, status;
   void *thread_status;
-  int matrix1[size][size], matrix2[size][size], result[size][size];
   printf("%*s%*d.0\t", 15, "pthreads", 15, size);
 
-  // Set up pthreads
-  pthread_t threads[size];
-  typedef struct {
-    int row;
-    int matrix1[size][size];
-    int matrix2[size][size];
-    int result[size][size];
-  } thread_data;
-  thread_data thread_data_array[size];
+  // Check matrix size
+  if (size > MAX_SIZE) {
+    printf("Matrix too large\n");
+    exit(1);
+  }
 
   // Generate matrices
   srand(time(NULL));
@@ -52,19 +48,30 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // Get CPU information
+  long nprocs = sysconf(_SC_NPROCESSORS_ONLN) * 2;
+  if (nprocs <= 0) {
+    printf("No processors are available to this process.");
+    exit(1);
+  }
+
   // Do the matrix multiplication
   for (rows = 0; rows < size; rows++) {
-    thread_data_array[rows].row = rows;
-    thread_data_array[rows].matrix1 = matrix1;
-    thread_data_array[rows].matrix2 = matrix2;
-    thread_data_array[rows].result = result;
-    status = pthread_create(&threads[rows], NULL, calc_row,
-        (void *) &thread_data_array[rows]);
+    thread_queue.push(rows);
+  }
+
+  // Set up pthreads
+  pthread_t threads[nprocs];
+  int n;
+  for (n = 0; n < nprocs; n++) {
+    // Create thread
+    status = pthread_create(&threads[n], NULL, calc_row, NULL);
     if (status) {
       perror("Could not create thread: ");
       exit(1);
     }
 
+    // Join thread
     status = pthread_join(threads[rows], &thread_status);
     if (status) {
       perror("Could not join thread: ");
