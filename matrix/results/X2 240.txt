@@ -1,0 +1,19 @@
+model name  : AMD Athlon(tm) II X2 240 Processor
+model name  : AMD Athlon(tm) II X2 240 Processor
+
+         Method             Size        Time
+      Iterative             10.0    0.00
+      Iterative             50.0    0.00
+      Iterative            100.0    0.02
+      Iterative            500.0    1.04
+      Iterative           1000.0    8.37
+       pthreads             10.0    0.04
+       pthreads             50.0    0.00
+       pthreads            100.0    0.01
+       pthreads            500.0    1.00
+       pthreads           1000.0    7.99
+   java threads             10.0    0.16
+   java threads             50.0    0.11
+   java threads            100.0    0.15
+   java threads            500.0    0.34
+   java threads           1000.0    2.08

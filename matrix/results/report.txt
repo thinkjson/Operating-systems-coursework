@@ -1,0 +1,3 @@
+Threads seem slightly faster than iterative. I was suprised to find that the java 
+implementation was faster than the C++ implementation, and conclude that I don't 
+know how to write C++. I could not get IPC working with multiple processes.
