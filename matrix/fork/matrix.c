@@ -15,7 +15,7 @@ typedef struct {
   long priority;
   int index;
   int finished;
-  int result[MAX_SIZE][MAX_SIZE];
+  int result[MAX_SIZE];
 } matrix;
 
 int main(int argc, char *argv[]) {
@@ -86,7 +86,6 @@ int main(int argc, char *argv[]) {
           perror("Could not populate queue");
           exit(1);
       }
-      printf("Row %d sent to mailbox %d\n", rows, mailboxes[rows % nprocs]);
     }
 
     // Notify processes to end
@@ -103,14 +102,12 @@ int main(int argc, char *argv[]) {
     for (proc = 0; proc < nprocs; proc++) {
       waitpid(processes[proc]);
     }
-    printf("Parent finished");
 
     // Empty mailbox
     for (rows = 0; rows < size; rows++) {
       status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
       for (cols = 0; cols < size; cols++) {
-        printf("Updating cell value\n");
-        result[message.index][cols] = *message.result[cols];
+        result[message.index][cols] = message.result[cols];
       }
     }
 
@@ -123,34 +120,23 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // Print finished matrix
-    for (rows = 0; rows < size; rows++) {
-      for (cols = 0; cols < size; cols++) {
-        printf("%d ", result[rows][cols]);
-      }
-      printf("\n");
-    }
-
-    //printf("%*s%*d.0\t", 15, "fork()", 15, size);
+    printf("%*s%*d.0\t", 15, "fork", 15, size);
   } else {
     // Block on queue input, return resultant row
     while (1) {
-      printf("blocking on mailbox %d\n", inbox);
       fflush(stdout);
       status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
       if (status < 0) {
-          perror("Could not receive message:");
+          perror("Could not receive message");
           exit(1);
       }
       if (message.finished == 1) {
         break;
       }
 
-      printf("Got a message\n");
-
       for (cols = 0; cols < size; cols++) {
         for (z = 0; z < size; z++) {
-          message.result[message.index][z] += matrix1[message.index][cols] * matrix2[cols][z];
+          message.result[z] += matrix1[message.index][cols] * matrix2[cols][z];
         }
       }
       status = msgsnd(outbox, &message, sizeof(message) - sizeof(long), 0);
