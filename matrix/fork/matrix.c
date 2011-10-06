@@ -22,6 +22,8 @@ int main(int argc, char *argv[]) {
   int size = atoi(argv[1]), rows, cols, z, PID, proc, parent = 1,
       inbox, outbox, mailbox, status;
   matrix message;
+  message.priority = 2;
+  message.finished = 0;
 
   // Check matrix size
   if (size > MAX_SIZE) {
@@ -80,13 +82,21 @@ int main(int argc, char *argv[]) {
     for (rows = 0; rows < size; rows++) {
       message.index = rows;
       status = msgsnd(mailboxes[rows % nprocs], &message, sizeof(message) - sizeof(long), 0);
-      printf("Row %d sent to mailbox %ld\n", rows, rows % nprocs);
+      if (status < 0) {
+          perror("Could not populate queue");
+          exit(1);
+      }
+      printf("Row %d sent to mailbox %d\n", rows, mailboxes[rows % nprocs]);
     }
 
     // Notify processes to end
     for (proc = 0; proc < nprocs; proc++) {
       message.finished = 1;
       status = msgsnd(mailboxes[proc], &message, sizeof(message) - sizeof(long), 0);
+      if (status < 0) {
+          perror("Could not send termination signal");
+          exit(1);
+      }
     }
 
     // Wait on children before exiting
@@ -108,6 +118,10 @@ int main(int argc, char *argv[]) {
     struct msqid_ds msqid_ds, *buf;
     buf = & msqid_ds;
     status = msgctl(inbox, IPC_RMID, buf);
+    if (status < 0) {
+        perror("Could not free inbox");
+        exit(1);
+    }
 
     // Print finished matrix
     for (rows = 0; rows < size; rows++) {
@@ -124,15 +138,26 @@ int main(int argc, char *argv[]) {
       printf("blocking on mailbox %d\n", inbox);
       fflush(stdout);
       status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
+      if (status < 0) {
+          perror("Could not receive message:");
+          exit(1);
+      }
       if (message.finished == 1) {
         break;
       }
+
+      printf("Got a message\n");
+
       for (cols = 0; cols < size; cols++) {
         for (z = 0; z < size; z++) {
           message.result[message.index][z] += matrix1[message.index][cols] * matrix2[cols][z];
         }
       }
       status = msgsnd(outbox, &message, sizeof(message) - sizeof(long), 0);
+      if (status < 0) {
+          perror("Could not send response");
+          exit(1);
+      }
     }
 
     // Free inbox
