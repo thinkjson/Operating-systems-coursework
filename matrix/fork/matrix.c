@@ -5,7 +5,8 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-#define BASEPID 8000
+#include <string.h>
+#define BASEPID 9000
 #define MAX_SIZE 1000
 
 int matrix1[MAX_SIZE][MAX_SIZE], matrix2[MAX_SIZE][MAX_SIZE],
@@ -82,16 +83,29 @@ int main(int argc, char *argv[]) {
     for (rows = 0; rows < size; rows++) {
       message.index = rows;
       status = msgsnd(mailboxes[rows % nprocs], &message, sizeof(message) - sizeof(long), 0);
+      //printf("Sent row %d to %d\n", rows, mailboxes[rows % nprocs]);
       if (status < 0) {
           perror("Could not populate queue");
           exit(1);
       }
     }
 
+    //printf("Finished populating queues\n");
+
+    // Empty mailbox
+    for (rows = 0; rows < size; rows++) {
+      status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
+      for (cols = 0; cols < size; cols++) {
+        result[message.index][cols] = message.result[cols];
+      }
+    }
+
     // Notify processes to end
     for (proc = 0; proc < nprocs; proc++) {
       message.finished = 1;
+      //printf("Sending termination signal to %d\n", mailboxes[proc]);
       status = msgsnd(mailboxes[proc], &message, sizeof(message) - sizeof(long), 0);
+      //printf("Successfully send termination signal to %d\n", mailboxes[proc]);
       if (status < 0) {
           perror("Could not send termination signal");
           exit(1);
@@ -101,14 +115,6 @@ int main(int argc, char *argv[]) {
     // Wait on children before exiting
     for (proc = 0; proc < nprocs; proc++) {
       waitpid(processes[proc]);
-    }
-
-    // Empty mailbox
-    for (rows = 0; rows < size; rows++) {
-      status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
-      for (cols = 0; cols < size; cols++) {
-        result[message.index][cols] = message.result[cols];
-      }
     }
 
     // Free inbox
@@ -124,6 +130,7 @@ int main(int argc, char *argv[]) {
   } else {
     // Block on queue input, return resultant row
     while (1) {
+      //printf("Listening on %d\n", inbox);
       fflush(stdout);
       status = msgrcv(inbox, &message, sizeof(message) - sizeof(long), 0, 0);
       if (status < 0) {
@@ -134,12 +141,17 @@ int main(int argc, char *argv[]) {
         break;
       }
 
+      memset(message.result, 0, size);
+      //printf("Received message in inbox %d\n", inbox);
+
       for (cols = 0; cols < size; cols++) {
         for (z = 0; z < size; z++) {
           message.result[z] += matrix1[message.index][cols] * matrix2[cols][z];
         }
       }
+      //printf("Sending calculated row to %d\n", outbox);
       status = msgsnd(outbox, &message, sizeof(message) - sizeof(long), 0);
+      //printf("Sent calculated row\n");
       if (status < 0) {
           perror("Could not send response");
           exit(1);
