@@ -3,6 +3,12 @@ all :
 	@g++ -o2 pthreads/matrix.cc -o pthreads/matrix -lpthread
 #	@gcc -o2 fork/matrix.c -o fork/matrix
 	@javac java-threads/src/*.java -d java-threads/bin
+	
+clean :
+	rm ./iteration/matrix
+	rm ./pthreads/matrix
+	rm ./fork/matrix
+	rm ./java-threads/bin/*.class
 
 test : all
 	@grep "model name" /proc/cpuinfo
